@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Function to log process name, CPU, and memory usage
+# Function to log CPU, memory usage, and process name
 log_usage() {
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     echo "$timestamp - Process: $1, CPU: $2%, Memory: $3%" >> usage_log.txt
@@ -13,11 +13,10 @@ monitor_usage() {
 
     while true; do
         # Get the top CPU-consuming process
-        top_output=$(top -bn1 | grep -E "^ *[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+[ ]+[0-9]+\.[0-9]+[ ]+[0-9]+\.[0-9]+[ ]+[^ ]+" | sort -k9 -nr | head -n1)
-        pid=$(echo "$top_output" | awk '{print $1}')
-        process_name=$(ps -p $pid -o comm=)
-        cpu_percent=$(echo "$top_output" | awk '{print 100 - $9}')
-        memory_percent=$(echo "$top_output" | awk '{print $10}')
+        top_output=$(ps -eo pid,comm,%cpu,%mem --sort=-%cpu,-%mem | head -n 2 | tail -n 1)
+        process_name=$(echo "$top_output" | awk '{print $2}')
+        cpu_percent=$(echo "$top_output" | awk '{print $3}')
+        memory_percent=$(echo "$top_output" | awk '{print $4}')
 
         if [ "$(echo "$cpu_percent > $threshold_cpu" | bc)" -eq 1 ] || [ "$(echo "$memory_percent > $threshold_memory" | bc)" -eq 1 ]; then
             log_usage "$process_name" "$cpu_percent" "$memory_percent"
